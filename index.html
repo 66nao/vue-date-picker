@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vue Date Picker</title>
+  <link rel="stylesheet" href="./css/bootstrap.min.css">
+  <style>
+    body {
+      padding: 20px;
+    }
+    .form-inline .form-control {
+      width: 120px;
+    }
+    .form-group {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="date-picker-demo">
+  <date-picker
+    :format="format"
+    :start="start"
+    :value.sync="date"
+    :end="end"
+  ></date-picker>
+  Current date: {{date}}
+  <div class="form-group">
+    <input type="text" class="form-control" v-model="date">
+  </div>
+</div>
+
+<script src="./js/vue.js"></script>
+<script src="./js/moment.min.js"></script>
+
+<!-- date picker template -->
+<script type="x/template" id="date-picker-template">
+  <div class="date-picker form-inline">
+    <div class="form-group">
+      <label>Year</label>
+      <select class="form-control year" v-model="year">
+        <option v-for="year in years" :value="year">{{year}}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Mouth</label>
+      <select class="form-control mouth" v-model="month">
+        <option v-for="month in months" :value="month">{{month+1}}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Day</label>
+      <select class="form-control day" v-model="day">
+        <option v-for="day in days" :value="day">{{day}}</option>
+      </select>
+    </div>
+  </div>
+</script>
+
+<!-- vue component date picker -->
+<script>
+Vue.component('date-picker', {
+  template: '#date-picker-template',
+  props: {
+    // date format
+    format: {
+      type: String,
+      default: 'YYYY-MM-DD'
+    },
+    // date of the first selectable
+    start: {
+      type: String,
+      default: '19000101'
+    },
+    // date value
+    value: {
+      type: String,
+      default: '19900101',
+      twoWay: true
+    },
+    // date of the last selectable
+    end: {
+      type: String,
+      default: '20201231'
+    },
+    // can input filed be edited
+    reayonly: {
+      type: Boolean,
+      default: false
+    }
+  },
+  computed: {
+    dateObj: function() {
+      return moment(this.value, this.format);
+    },
+    startObj: function() {
+      return moment(this.start, this.format);
+    },
+    endObj: function() {
+      return moment(this.end, this.format);
+    },
+    year: {
+      get: function() {
+        return this.dateObj.year();
+      },
+      set: function(year) {
+        this.value = this.dateObj.year(year).format(this.format);
+        this.getMonths();
+        if (this.months.indexOf(this.month) === -1) {
+          this.month = this.months[0];
+        }
+      }
+    },
+    month: {
+      get: function() {
+        return this.dateObj.month();
+      },
+      set: function(month) {
+        this.value = this.dateObj.month(month).format(this.format);
+        this.getDays();
+        if (this.days.indexOf(this.day) === -1) {
+          this.day = this.days[0];
+        }
+      }
+    },
+    day: {
+      get: function() {
+        return this.dateObj.date();
+      },
+      set: function(day) {
+        this.value = this.dateObj.date(day).format(this.format);
+      }
+    },
+    years: function() {
+      var _years  = [];
+      var _to = this.endObj.year();
+      for (var _y = this.startObj.year(); _y <= _to; _y++) {
+        _years.push(_y);
+      }
+      return _years;
+    },
+    months: function() {
+      var _months = [];
+      var _to = 11;
+      var _m = 0;
+      if (this.year >= this.endObj.year()) {
+        _to = this.endObj.month();
+      }
+      if (this.year <= this.startObj.year()) {
+        _m = this.startObj.month();
+      }
+      for (; _m <= _to; _m++ ) {
+        _months.push(_m);
+      }
+      return _months;
+    },
+    days: function() {
+      var _days = [];
+      var _to = this.dateObj.daysInMonth();
+      var _d = 1;
+      if (this.year <= this.startObj.year() && this.month <= this.startObj.month()) {
+        _d = this.startObj.date();
+      }
+      if (this.year >= this.endObj.year() && this.month >= this.endObj.month()) {
+        _to = this.endObj.date();
+      }
+      for (; _d <= _to; _d++) {
+        _days.push(_d);
+      }
+      return _days;
+    }
+  },
+  watch: {
+    value: function(newVal, oldVal) {
+      var _date = moment(newVal, this.format);
+      if (!_date.isValid) {
+        this.value = oldVal;
+      }
+      if (!_date.isBetween(this.startObj, this.endObj)) {
+        this.value = oldVal;
+        console.error('Date must between start and end.');
+      }
+    }
+  },
+  created: function() {
+    if (!this.startObj.isValid()) {
+      throw new Error('Start date is not right, or format is not right.');
+    }
+    if (!this.dateObj.isValid()) {
+      throw new Error('Default date is not right, or format is not right.');
+    }
+    if (!this.endObj.isValid()) {
+      throw new Error('End date is not right, or format is not right.');
+    }
+    if (!this.startObj.isBefore(this.endObj)) {
+      throw new Error('Start date must before end date.');
+    }
+    if (!this.dateObj.isBetween(this.startObj, this.endObj)) {
+      throw new Error('Date must between start and end.');
+    }
+  }
+});
+</script>
+<!-- vue instance -->
+<script>
+new Vue({
+  el: '#date-picker-demo',
+  data: {
+    format: 'YYYY.MM.DD',
+    date: '1991.10.01',
+    start: '1900.02.03',
+    end: '2050.11.21'
+  }
+});
+</script>
+</body>
+</html>
